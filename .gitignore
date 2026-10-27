@@ -1,0 +1,12 @@
+# 앱 실행 중 생성되는 데이터 (증빙 파일·DB는 공개 저장소에 올리지 않는다)
+data/
+*.db
+uploads/
+
+# Streamlit 비밀 값
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
