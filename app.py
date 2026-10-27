@@ -803,4 +803,5 @@ else:
         st.Page(page_sites, title="사업장 설정", icon=":material/settings:", url_path="sites"),
     ]
 
+st.warning("⚠️ 본 애플리케이션은 시연 및 테스트용입니다. 입력한 데이터는 서버 재시작 시 초기화될 수 있습니다.")
 st.navigation(pages).run()
