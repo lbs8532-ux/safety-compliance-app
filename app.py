@@ -6,6 +6,7 @@
 """
 
 import hashlib
+import hmac
 import io
 import re
 import shutil
@@ -28,6 +29,7 @@ DB_PATH = DATA_DIR / "compliance.db"
 INDUSTRIES = ["건설업", "제조업"]
 STATUSES = ["미점검", "이행", "부분 이행", "미이행", "해당 없음"]
 STATUS_SCORE = {"이행": 1.0, "부분 이행": 0.5, "미이행": 0.0, "미점검": 0.0}
+DEFAULT_PASSWORD = "9408"  # 초기 비밀번호. 배포 시 secrets의 app_password로 덮어쓰는 것을 권장
 ACTION_STATUSES = ["미착수", "진행 중", "완료"]
 PRIORITIES = ["높음", "보통", "낮음"]
 EXPIRY_WARN_DAYS = 30
@@ -773,11 +775,36 @@ def page_sites():
 # ---------------------------------------------------------------------------
 # 앱 진입점
 # ---------------------------------------------------------------------------
+def app_password() -> str:
+    """Streamlit secrets의 app_password를 우선 사용하고, 없으면 초기 비밀번호를 쓴다."""
+    try:
+        return str(st.secrets.get("app_password", DEFAULT_PASSWORD))
+    except Exception:  # secrets.toml이 없는 환경
+        return DEFAULT_PASSWORD
+
+
+if not st.session_state.get("authenticated"):
+    st.warning("⚠️ 본 애플리케이션은 시연 및 테스트용입니다. 입력한 데이터는 서버 재시작 시 초기화될 수 있습니다.")
+    st.title("중대재해처벌법 이행 점검")
+    with st.form("login"):
+        password = st.text_input("비밀번호를 입력하세요", type="password")
+        submitted = st.form_submit_button("로그인", type="primary", icon=":material/login:")
+    if submitted:
+        if hmac.compare_digest(password.encode("utf-8"), app_password().encode("utf-8")):
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            st.error("비밀번호가 올바르지 않습니다.")
+    st.stop()
+
 init_db()
 sites_df = load_sites()
 
 with st.sidebar:
     st.header(":material/health_and_safety: 중대재해 이행 점검")
+    if st.button("로그아웃", icon=":material/logout:", width="stretch"):
+        st.session_state.clear()
+        st.rerun()
     if not sites_df.empty:
         ids = sites_df["id"].tolist()
         if st.session_state.get("site_id") not in ids:
